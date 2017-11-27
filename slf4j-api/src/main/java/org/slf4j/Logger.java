@@ -25,6 +25,8 @@
 
 package org.slf4j;
 
+import org.slf4j.event.Level;
+
 /**
  * The org.slf4j.Logger interface is the main user entry point of SLF4J API.
  * It is expected that logging takes place through concrete implementations
@@ -347,6 +349,18 @@ public interface Logger {
      *         false otherwise.
      */
     public boolean isInfoEnabled();
+
+    /**
+     * Create a message builder at the INFO level.
+     *
+     * @see LoggerMessageBuilder
+     */
+    public default LoggerMessageBuilder info() {
+        if (!isInfoEnabled()) {
+            return LoggerMessageBuilder.DiscardingLoggerMessageBuilder.INSTANCE;
+        }
+        return new LoggerMessageBuilderImpl(this, Level.INFO);
+    }
 
     /**
      * Log a message at the INFO level.

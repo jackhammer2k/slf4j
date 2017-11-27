@@ -20,12 +20,8 @@
  * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
  * OF CONTRACT, TORT OR OTHERWISE,  ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 package org.slf4j;
-
-import java.io.Closeable;
-import java.util.Map;
 
 import org.slf4j.helpers.BasicMDCAdapter;
 import org.slf4j.helpers.NOPMDCAdapter;
@@ -33,10 +29,13 @@ import org.slf4j.helpers.Util;
 import org.slf4j.spi.MDCAdapter;
 import org.slf4j.spi.SLF4JServiceProvider;
 
+import java.io.Closeable;
+import java.util.Map;
+
 /**
  * This class hides and serves as a substitute for the underlying logging
  * system's MDC implementation.
- * 
+ *
  * <p>
  * If the underlying logging system offers MDC functionality, then SLF4J's MDC,
  * i.e. this class, will delegate to the underlying system's MDC. Note that at
@@ -49,15 +48,15 @@ import org.slf4j.spi.SLF4JServiceProvider;
  * Thus, as a SLF4J user, you can take advantage of MDC in the presence of log4j,
  * logback, or java.util.logging, but without forcing these systems as
  * dependencies upon your users.
- * 
+ *
  * <p>
  * For more information on MDC please see the <a
  * href="http://logback.qos.ch/manual/mdc.html">chapter on MDC</a> in the
  * logback manual.
- * 
+ *
  * <p>
  * Please note that all methods in this class are static.
- * 
+ *
  * @author Ceki G&uuml;lc&uuml;
  * @since 1.4.1
  */
@@ -101,15 +100,16 @@ public class MDC {
      * <code>key</code> parameter into the current thread's diagnostic context map. The
      * <code>key</code> parameter cannot be null. The <code>val</code> parameter
      * can be null only if the underlying implementation supports it.
-     * 
+     *
      * <p>
      * This method delegates all work to the MDC of the underlying logging system.
      *
-     * @param key non-null key 
-     * @param val value to put in the map
-     * 
+     * @param key
+     *         non-null key
+     * @param val
+     *         value to put in the map
      * @throws IllegalArgumentException
-     *           in case the "key" parameter is null
+     *         in case the "key" parameter is null
      */
     public static void put(String key, String val) throws IllegalArgumentException {
         if (key == null) {
@@ -136,18 +136,19 @@ public class MDC {
      * <p>
      * Useful with Java 7 for example :
      * <code>
-     *   try(MDC.MDCCloseable closeable = MDC.putCloseable(key, value)) {
-     *     ....
-     *   }
+     * try(MDC.MDCCloseable closeable = MDC.putCloseable(key, value)) {
+     * ....
+     * }
      * </code>
      *
-     * @param key non-null key
-     * @param val value to put in the map
+     * @param key
+     *         non-null key
+     * @param val
+     *         value to put in the map
      * @return a <code>Closeable</code> who can remove <code>key</code> when <code>close</code>
      * is called.
-     *
      * @throws IllegalArgumentException
-     *           in case the "key" parameter is null
+     *         in case the "key" parameter is null
      */
     public static MDCCloseable putCloseable(String key, String val) throws IllegalArgumentException {
         put(key, val);
@@ -157,14 +158,14 @@ public class MDC {
     /**
      * Get the diagnostic context identified by the <code>key</code> parameter. The
      * <code>key</code> parameter cannot be null.
-     * 
+     *
      * <p>
      * This method delegates all work to the MDC of the underlying logging system.
      *
-     * @param key  
+     * @param key
      * @return the string value identified by the <code>key</code> parameter.
      * @throws IllegalArgumentException
-     *           in case the "key" parameter is null
+     *         in case the "key" parameter is null
      */
     public static String get(String key) throws IllegalArgumentException {
         if (key == null) {
@@ -183,9 +184,9 @@ public class MDC {
      * cannot be null. This method does nothing if there is no previous value
      * associated with <code>key</code>.
      *
-     * @param key  
+     * @param key
      * @throws IllegalArgumentException
-     *           in case the "key" parameter is null
+     *         in case the "key" parameter is null
      */
     public static void remove(String key) throws IllegalArgumentException {
         if (key == null) {
@@ -211,7 +212,7 @@ public class MDC {
     /**
      * Return a copy of the current thread's context map, with keys and values of
      * type String. Returned value may be null.
-     * 
+     *
      * @return A copy of the current thread's context map. May be null.
      * @since 1.5.1
      */
@@ -226,9 +227,9 @@ public class MDC {
      * Set the current thread's context map by first clearing any existing map and
      * then copying the map passed as parameter. The context map passed as
      * parameter must only contain keys and values of type String.
-     * 
+     *
      * @param contextMap
-     *          must contain only keys and values of type String
+     *         must contain only keys and values of type String
      * @since 1.5.1
      */
     public static void setContextMap(Map<String, String> contextMap) {
@@ -240,7 +241,7 @@ public class MDC {
 
     /**
      * Returns the MDCAdapter instance currently in use.
-     * 
+     *
      * @return the MDcAdapter instance currently in use.
      * @since 1.4.2
      */
@@ -248,4 +249,66 @@ public class MDC {
         return mdcAdapter;
     }
 
+    /**
+     * Sets fields in MDC and runs given command.
+     */
+    public static void runWith(Map<String, String> fields, Runnable command) {
+        try {
+            for (Map.Entry<String, String> entry : fields.entrySet()) {
+                put(entry.getKey(), entry.getValue());
+            }
+
+            command.run();
+        } finally {
+            for (String key : fields.keySet()) {
+                remove(key);
+            }
+        }
+    }
+
+    /**
+     * Sets field in MDC and runs given command.
+     */
+    public static void runWith(String key, String value, Runnable command) {
+        try {
+            put(key, value);
+
+            command.run();
+        } finally {
+            remove(key);
+        }
+    }
+
+    /**
+     * Sets fields in MDC and runs given command.
+     */
+    public static void runWith(String key1, String value1, String key2, String value2, Runnable command) {
+        try {
+            put(key1, value1);
+            put(key2, value2);
+
+            command.run();
+        } finally {
+            remove(key1);
+            remove(key2);
+        }
+    }
+
+    /**
+     * Sets fields in MDC and runs given command.
+     */
+    public static void runWith(String key1, String value1, String key2, String value2, String key3, String value3,
+                               Runnable command) {
+        try {
+            put(key1, value1);
+            put(key2, value2);
+            put(key3, value3);
+
+            command.run();
+        } finally {
+            remove(key1);
+            remove(key2);
+            remove(key3);
+        }
+    }
 }
